@@ -3,8 +3,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define ARRAY_LENGTH(xs) (sizeof(xs) / sizeof(xs[0]))
-
 static uint8_t *read_file(const char *path, size_t *out_size) {
   FILE *f = fopen(path, "rb");
   assert(f != NULL);
@@ -22,13 +20,12 @@ static uint8_t *read_file(const char *path, size_t *out_size) {
 static inline const char *get_register_name(int index, int is_word) {
   const char *reg_byte[] = {"al", "cl", "dl", "bl", "ah", "ch", "dh", "bh"};
   const char *reg_word[] = {"ax", "cx", "dx", "bx", "sp", "bp", "si", "di"};
-  assert(ARRAY_LENGTH(reg_byte) == ARRAY_LENGTH(reg_word));
-  assert(0 <= index && index < ARRAY_LENGTH(reg_byte));
+
   if (is_word) {
     return reg_word[index];
-  } else {
-    return reg_byte[index];
   }
+  
+  return reg_byte[index];
 }
 
 static void disasm(uint8_t *data, size_t size) {
@@ -38,7 +35,6 @@ static void disasm(uint8_t *data, size_t size) {
   while (p < p_end) {
     uint8_t op0 = *p;
     if ((op0 >> 2) != 0b100010) {
-      fprintf(stderr, "Could not decode instruction byte [%2x]\n", op0);
       exit(EXIT_FAILURE);
     }
 
@@ -75,7 +71,6 @@ static void disasm(uint8_t *data, size_t size) {
 }
 int main(int argc, char **argv) {
   if (argc != 2) {
-    fprintf(stderr, "usage: %s <binary>\n", argv[0]);
     exit(EXIT_FAILURE);
   }
 
