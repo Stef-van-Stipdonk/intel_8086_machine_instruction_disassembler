@@ -88,8 +88,13 @@ static void disasm(const uint8_t *data, const size_t size) {
         p += 2;
       } else if (mod == 0b01) {
         if ((*(uint8_t *)(p + 2)) > 0) {
-          printf("%s, [%s + %i]\n", get_register_name(reg, w), nodisp[rm],
-                 *(int8_t *)(p + 2));
+          if (d) {
+            printf("%s, [%s + %i]\n", get_register_name(reg, w), nodisp[rm],
+                   *(int8_t *)(p + 2));
+          } else {
+            printf("[%s + %i], %s\n", nodisp[rm], *(int8_t *)(p + 2),
+                   get_register_name(reg, w));
+          }
         } else {
           if (d) {
             printf("%s, [%s]\n", get_register_name(reg, w), nodisp[rm]);
@@ -135,27 +140,52 @@ static void disasm(const uint8_t *data, const size_t size) {
       }
 
       if (mod == 0b00) {
-        printf("byte [%s], %i\n", nodisp[rm], *(uint8_t *)(p + 2));
-        p += 3;
+        if (rm == 0b110) {
+          if (w) {
+            if (s) {
+              printf("word [%i], %i\n", *(uint16_t *)(p + 2),
+                     *(uint8_t *)(p + 4));
+              p += 5;
+            } else {
+              printf("word [%i], %i\n", *(uint16_t *)(p + 2),
+                     *(uint16_t *)(p + 4));
+              p += 6;
+            }
+          } else {
+            printf("byte [%i], %i\n", *(uint8_t *)(p + 2), *(uint8_t *)(p + 3));
+            p += 4;
+          }
+        } else {
+          if (w) {
+            if (s) {
+              printf("word [%s], %i\n", nodisp[rm], *(uint8_t *)(p + 2));
+            } else {
+
+              printf("word [%s], %i\n", nodisp[rm], *(uint16_t *)(p + 2));
+            }
+          } else {
+            printf("byte [%s], %i\n", nodisp[rm], *(uint8_t *)(p + 2));
+          }
+          p += 3;
+        }
       } else if (mod == 0b01) {
-        print_byte_as_binary(p, 6);
         exit(EXIT_FAILURE);
       } else if (mod == 0b10) {
         if (w) {
-          printf("word [%s + %i], %i\n", nodisp[rm], *(uint8_t *)(p + 2),
-                 *(uint16_t *)(p + 4));
-
-          p += 5;
-        } else {
           if (s) {
-            printf("word [%s + %i], %i\n", nodisp[rm], *(uint16_t *)(p + 2),
-                   *(uint16_t *)(p + 4));
-            p += 6;
-          } else {
             printf("word [%s + %i], %i\n", nodisp[rm], *(uint16_t *)(p + 2),
                    *(uint8_t *)(p + 4));
             p += 5;
+          } else {
+            printf("word [%s + %i], %i\n", nodisp[rm], *(uint16_t *)(p + 2),
+                   *(uint16_t *)(p + 4));
+
+            p += 6;
           }
+        } else {
+          printf("byte [%s + %i], %i\n", nodisp[rm], *(uint8_t *)(p + 2),
+                 *(uint8_t *)(p + 3));
+          p += 4;
         }
       } else if (mod == 0b11) {
         printf("%s, %i\n", get_register_name(rm, w), *(int8_t *)(p + 2));
