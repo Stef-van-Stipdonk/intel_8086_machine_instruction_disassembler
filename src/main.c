@@ -124,8 +124,9 @@ static void disasm(const uint8_t *data, const size_t size) {
 
         p += 2;
       }
-    } else if ((op0 >> 2) ==
-               0b100000) { // add, sub ,cmp | register/memory <- immediate
+    } else if ((op0 >> 2) == 0b100000 ||
+               (op0 >> 2) ==
+                   0b1100011) { // add, sub ,cmp | register/memory <- immediate
       const int w = op0 & 1;
       const int s = (op0 >> 1) & 1;
 
@@ -134,12 +135,16 @@ static void disasm(const uint8_t *data, const size_t size) {
       const int reg = (op1 >> 3) & 0b111;
       const int mod = (op1 >> 6) & 0b11;
 
-      if (reg == 0b000) {
-        printf("add ");
-      } else if (reg == 0b101) {
-        printf("sub ");
-      } else if (reg == 0b111) {
-        printf("cmp ");
+      if ((op0 >> 2) == 0b1100011) {
+        printf("mov ");
+      } else {
+        if (reg == 0b000) {
+          printf("add ");
+        } else if (reg == 0b101) {
+          printf("sub ");
+        } else if (reg == 0b111) {
+          printf("cmp ");
+        }
       }
 
       if (mod == 0b00) {
@@ -195,10 +200,10 @@ static void disasm(const uint8_t *data, const size_t size) {
 
         p += 3;
       }
-    } else if ((op0 >> 1) == 0b000001 || // add immediate > accumulator
-               (op0 >> 1) == 0b001011 || // sub immediate > accumulator
-               (op0 >> 1) == 0b101000 || // mov immediate <> accumulator
-               (op0 >> 1) == 0b001111) { // cmp accumulator > register
+    } else if ((op0 >> 2) == 0b000001 || // add immediate > accumulator
+               (op0 >> 2) == 0b001011 || // sub immediate > accumulator
+               (op0 >> 2) == 0b101000 || // mov immediate <> accumulator
+               (op0 >> 2) == 0b001111) { // cmp accumulator > register
       const uint8_t w = op0 & 1;
       const uint8_t acummulator = 0b000;
 
