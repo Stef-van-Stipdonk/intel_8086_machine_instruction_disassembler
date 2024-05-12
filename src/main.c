@@ -1,9 +1,10 @@
 #include <assert.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/types.h>
-
 char nodisp[8][10] = {{"bx + si"}, {"bx + di"}, {"bp + si"}, {"bp + di"},
                       {"si"},      {"di"},      {"bp"},      {"bx"}};
 
@@ -44,7 +45,8 @@ static void print_byte_as_binary(const uint8_t *byte, uint8_t amount) {
   printf("\n");
 }
 
-static void disasm(const uint8_t *data, const size_t size) {
+static void disasm(const uint8_t *data, const size_t size,
+                   const bool should_exec) {
   const uint8_t *p = data;
   const uint8_t *p_end = p + size;
 
@@ -248,16 +250,25 @@ static void disasm(const uint8_t *data, const size_t size) {
     }
   }
 }
+
 int main(int argc, char **argv) {
-  if (argc != 2) {
-    exit(EXIT_FAILURE);
+  uint8_t file_pos = 1;
+  bool should_exec = false;
+
+  if (argc > 2) {
+    assert(argv[2]);
+    if (strcmp(argv[1], "--exec") == 0 || strcmp(argv[1], "-e") == 0) {
+      file_pos = 2;
+      should_exec = true;
+      printf("executing");
+    }
   }
 
   size_t size;
-  const uint8_t *data = read_file(argv[1], &size);
-  printf("; disassembly of %s, %zdb\n", argv[1], size);
+  const uint8_t *data = read_file(argv[file_pos], &size);
+  printf("; disassembly of %s, %zdb\n", argv[file_pos], size);
   printf("bits 16\n");
-  disasm(data, size);
+  disasm(data, size, should_exec);
 
   return EXIT_SUCCESS;
 }
