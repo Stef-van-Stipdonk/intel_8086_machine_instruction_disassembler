@@ -8,6 +8,8 @@
 char nodisp[8][10] = {{"bx + si"}, {"bx + di"}, {"bp + si"}, {"bp + di"},
                       {"si"},      {"di"},      {"bp"},      {"bx"}};
 
+int16_t reg_values[8] = {0};
+
 static const uint8_t *read_file(const char *path, size_t *out_size) {
   FILE *f = fopen(path, "rb");
   assert(f != NULL);
@@ -21,7 +23,6 @@ static const uint8_t *read_file(const char *path, size_t *out_size) {
   fclose(f);
   return data;
 }
-
 static inline const char *get_register_name(int index, int is_word) {
   const char *reg_byte[] = {"al", "cl", "dl", "bl", "ah", "ch", "dh", "bh"};
   const char *reg_word[] = {"ax", "cx", "dx", "bx", "sp", "bp", "si", "di"};
@@ -117,11 +118,20 @@ static void disasm(const uint8_t *data, const size_t size,
         p += 4;
       } else if (mod == 0b11) {
         if (d) {
-          printf("%s, %s\n", get_register_name(reg, w),
-                 get_register_name(rm, w));
+          printf("%s, %s", get_register_name(reg, w), get_register_name(rm, w));
         } else {
-          printf("%s, %s\n", get_register_name(rm, w),
-                 get_register_name(reg, w));
+          printf("%s, %s", get_register_name(rm, w), get_register_name(reg, w));
+        }
+
+        int16_t before = reg_values[rm];
+        reg_values[rm] = reg_values[reg];
+        int16_t after = reg_values[rm];
+
+        if (should_exec) {
+          printf(" ; %s:0x%x->0x%x\n", get_register_name(reg, w), before,
+                 after);
+        } else {
+          printf("\n");
         }
 
         p += 2;
@@ -236,12 +246,27 @@ static void disasm(const uint8_t *data, const size_t size,
 
       printf("mov ");
 
+      int16_t immediate;
+
       if (w) {
-        printf("%s, %i\n", get_register_name(reg, w), *(int16_t *)(p + 1));
+        immediate = *(int16_t *)(p + 1);
+        printf("%s, %i", get_register_name(reg, w), immediate);
+
         p += 3;
       } else {
-        printf("%s, %i\n", get_register_name(reg, w), *(int8_t *)(p + 1));
+        immediate = *(int8_t *)(p + 1);
+        printf("%s, %i", get_register_name(reg, w), immediate);
         p += 2;
+      }
+
+      int16_t before = reg_values[reg];
+      reg_values[reg] = immediate;
+      int16_t after = reg_values[reg];
+
+      if (should_exec) {
+        printf(" ; %s:0x%x->0x%x\n", get_register_name(reg, w), before, after);
+      } else {
+        printf("\n");
       }
     } else {
       printf("Not implemented instruction\n");
@@ -253,14 +278,13 @@ static void disasm(const uint8_t *data, const size_t size,
 
 int main(int argc, char **argv) {
   uint8_t file_pos = 1;
-  bool should_exec = false;
+  bool should_exec = false; // If set to true, execution will be simulated
 
   if (argc > 2) {
     assert(argv[2]);
     if (strcmp(argv[1], "--exec") == 0 || strcmp(argv[1], "-e") == 0) {
       file_pos = 2;
       should_exec = true;
-      printf("executing");
     }
   }
 
@@ -269,6 +293,25 @@ int main(int argc, char **argv) {
   printf("; disassembly of %s, %zdb\n", argv[file_pos], size);
   printf("bits 16\n");
   disasm(data, size, should_exec);
+  if (should_exec) {
+    printf("\nFinal registers:\n");
+    printf("\t %s: 0x%.4x (%d)\n", get_register_name(0, 1), reg_values[0],
+           reg_values[0]);
+    printf("\t %s: 0x%.4x (%d)\n", get_register_name(1, 1), reg_values[1],
+           reg_values[1]);
 
+    printf("\t %s: 0x%.4x (%d)\n", get_register_name(2, 1), reg_values[2],
+           reg_values[2]);
+    printf("\t %s: 0x%.4x (%d)\n", get_register_name(3, 1), reg_values[3],
+           reg_values[3]);
+    printf("\t %s: 0x%.4x (%d)\n", get_register_name(4, 1), reg_values[4],
+           reg_values[4]);
+    printf("\t %s: 0x%.4x (%d)\n", get_register_name(5, 1), reg_values[5],
+           reg_values[5]);
+    printf("\t %s: 0x%.4x (%d)\n", get_register_name(6, 1), reg_values[6],
+           reg_values[6]);
+    printf("\t %s: 0x%.4x (%d)\n", get_register_name(7, 1), reg_values[7],
+           reg_values[7]);
+  }
   return EXIT_SUCCESS;
 }
