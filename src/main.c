@@ -79,59 +79,76 @@ static void disasm(const uint8_t *data, const size_t size,
       if (mod == 0b00) {
         if (rm == 0b110) {
           if (d) {
-            printf("%s, %i\n", get_register_name(reg, w), (uint8_t)rm);
+            printf("%s, %i", get_register_name(reg, w), (uint8_t)rm);
           } else {
-            printf("%i, %s\n", (uint8_t)rm, get_register_name(reg, w));
+            printf("%i, %s", (uint8_t)rm, get_register_name(reg, w));
           }
         } else {
           if (d) {
-            printf("%s, [%s]\n", get_register_name(reg, w), nodisp[rm]);
+            printf("%s, [%s]", get_register_name(reg, w), nodisp[rm]);
           } else {
-            printf("[%s], %s\n", nodisp[rm], get_register_name(reg, w));
+            printf("[%s], %s", nodisp[rm], get_register_name(reg, w));
           }
         }
         p += 2;
       } else if (mod == 0b01) {
         if ((*(uint8_t *)(p + 2)) > 0) {
           if (d) {
-            printf("%s, [%s + %i]\n", get_register_name(reg, w), nodisp[rm],
+            printf("%s, [%s + %i]", get_register_name(reg, w), nodisp[rm],
                    *(int8_t *)(p + 2));
           } else {
-            printf("[%s + %i], %s\n", nodisp[rm], *(int8_t *)(p + 2),
+            printf("[%s + %i], %s", nodisp[rm], *(int8_t *)(p + 2),
                    get_register_name(reg, w));
           }
         } else {
           if (d) {
-            printf("%s, [%s]\n", get_register_name(reg, w), nodisp[rm]);
+            printf("%s, [%s]", get_register_name(reg, w), nodisp[rm]);
           } else {
-            printf("[%s], %s\n", nodisp[rm], get_register_name(reg, w));
+            printf("[%s], %s", nodisp[rm], get_register_name(reg, w));
           }
         }
         p += 3;
       } else if (mod == 0b10) {
         if ((*(uint16_t *)(p + 2)) > 0) {
-          printf("%s, [%s + %i]\n", get_register_name(reg, w), nodisp[rm],
+          printf("%s, [%s + %i]", get_register_name(reg, w), nodisp[rm],
                  *(uint16_t *)(p + 2));
         } else {
-          printf("%s, [%s]\n", get_register_name(reg, w), nodisp[rm]);
+          printf("%s, [%s]", get_register_name(reg, w), nodisp[rm]);
         }
         p += 4;
       } else if (mod == 0b11) {
         if (d) {
           printf("%s, %s", get_register_name(reg, w), get_register_name(rm, w));
+          if (should_exec) {
+            int16_t before = reg_values[reg];
+            if ((op0 >> 2) == 0b000000) {
+              reg_values[reg] = reg_values[reg] + reg_values[rm];
+              int16_t after = reg_values[reg];
+              printf(" ; %s:0x%x->0x%x", get_register_name(reg, w), before,
+                     after);
+            } else if ((op0 >> 2) == 0b001010) {
+              reg_values[reg] = reg_values[reg] - reg_values[rm];
+              int16_t after = reg_values[reg];
+              printf(" ; %s:0x%x->0x%x", get_register_name(reg, w), before,
+                     after);
+            }
+          }
         } else {
           printf("%s, %s", get_register_name(rm, w), get_register_name(reg, w));
-        }
-
-        int16_t before = reg_values[rm];
-        reg_values[rm] = reg_values[reg];
-        int16_t after = reg_values[rm];
-
-        if (should_exec) {
-          printf(" ; %s:0x%x->0x%x\n", get_register_name(reg, w), before,
-                 after);
-        } else {
-          printf("\n");
+          if (should_exec) {
+            int16_t before = reg_values[rm];
+            if ((op0 >> 2) == 0b000000) {
+              reg_values[rm] = reg_values[rm] + reg_values[reg];
+              int16_t after = reg_values[rm];
+              printf(" ; %s:0x%x->0x%x", get_register_name(rm, w), before,
+                     after);
+            } else if ((op0 >> 2) == 0b001010) {
+              reg_values[rm] = reg_values[rm] - reg_values[reg];
+              int16_t after = reg_values[rm];
+              printf(" ; %s:0x%x->0x%x", get_register_name(rm, w), before,
+                     after);
+            }
+          }
         }
 
         p += 2;
@@ -163,28 +180,28 @@ static void disasm(const uint8_t *data, const size_t size,
         if (rm == 0b110) {
           if (w) {
             if (s) {
-              printf("word [%i], %i\n", *(uint16_t *)(p + 2),
+              printf("word [%i], %i", *(uint16_t *)(p + 2),
                      *(uint8_t *)(p + 4));
               p += 5;
             } else {
-              printf("word [%i], %i\n", *(uint16_t *)(p + 2),
+              printf("word [%i], %i", *(uint16_t *)(p + 2),
                      *(uint16_t *)(p + 4));
               p += 6;
             }
           } else {
-            printf("byte [%i], %i\n", *(uint8_t *)(p + 2), *(uint8_t *)(p + 3));
+            printf("byte [%i], %i", *(uint8_t *)(p + 2), *(uint8_t *)(p + 3));
             p += 4;
           }
         } else {
           if (w) {
             if (s) {
-              printf("word [%s], %i\n", nodisp[rm], *(uint8_t *)(p + 2));
+              printf("word [%s], %i", nodisp[rm], *(uint8_t *)(p + 2));
             } else {
 
-              printf("word [%s], %i\n", nodisp[rm], *(uint16_t *)(p + 2));
+              printf("word [%s], %i", nodisp[rm], *(uint16_t *)(p + 2));
             }
           } else {
-            printf("byte [%s], %i\n", nodisp[rm], *(uint8_t *)(p + 2));
+            printf("byte [%s], %i", nodisp[rm], *(uint8_t *)(p + 2));
           }
           p += 3;
         }
@@ -193,22 +210,21 @@ static void disasm(const uint8_t *data, const size_t size,
       } else if (mod == 0b10) {
         if (w) {
           if (s) {
-            printf("word [%s + %i], %i\n", nodisp[rm], *(uint16_t *)(p + 2),
+            printf("word [%s + %i], %i", nodisp[rm], *(uint16_t *)(p + 2),
                    *(uint8_t *)(p + 4));
             p += 5;
           } else {
-            printf("word [%s + %i], %i\n", nodisp[rm], *(uint16_t *)(p + 2),
+            printf("word [%s + %i], %i", nodisp[rm], *(uint16_t *)(p + 2),
                    *(uint16_t *)(p + 4));
-
             p += 6;
           }
         } else {
-          printf("byte [%s + %i], %i\n", nodisp[rm], *(uint8_t *)(p + 2),
+          printf("byte [%s + %i], %i", nodisp[rm], *(uint8_t *)(p + 2),
                  *(uint8_t *)(p + 3));
           p += 4;
         }
       } else if (mod == 0b11) {
-        printf("%s, %i\n", get_register_name(rm, w), *(int8_t *)(p + 2));
+        printf("%s, %i", get_register_name(rm, w), *(int8_t *)(p + 2));
 
         p += 3;
       }
@@ -230,13 +246,12 @@ static void disasm(const uint8_t *data, const size_t size,
       }
 
       if (w) {
-        printf("%s, %i\n", get_register_name(acummulator, w),
+        printf("%s, %i", get_register_name(acummulator, w),
                *(int16_t *)(p + 1));
 
         p += 3;
       } else {
-        printf("%s, %i\n", get_register_name(acummulator, w),
-               *(int8_t *)(p + 1));
+        printf("%s, %i", get_register_name(acummulator, w), *(int8_t *)(p + 1));
 
         p += 2;
       }
@@ -264,15 +279,16 @@ static void disasm(const uint8_t *data, const size_t size,
       int16_t after = reg_values[reg];
 
       if (should_exec) {
-        printf(" ; %s:0x%x->0x%x\n", get_register_name(reg, w), before, after);
+        printf(" ; %s:0x%x->0x%x", get_register_name(reg, w), before, after);
       } else {
-        printf("\n");
       }
     } else {
-      printf("Not implemented instruction\n");
+      printf("Not implemented instruction");
       print_byte_as_binary(p, 6);
       exit(EXIT_FAILURE);
     }
+
+    printf("\n");
   }
 }
 
