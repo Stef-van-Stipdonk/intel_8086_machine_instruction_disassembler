@@ -1,4 +1,4 @@
-gcc ./src/main.c 
+bash ./compile.sh
 
 echo "TEST EXPLANATION"
 echo "Each test case runs the dissassembler against a different compiled .asm file."
@@ -8,7 +8,7 @@ echo ""
 
 # TESTS
 echo "CASE 1 - listing_0037_single_register_mov"
-output=$(./a.out ./compiled_asm/listing_0037_single_register_mov > test.asm)
+output=$(./disassembler ./compiled_asm/listing_0037_single_register_mov > test.asm)
 return_val=$?
 
 nasm ./test.asm
@@ -21,7 +21,7 @@ else
 fi
 
 echo "CASE 2 - listing_0038_many_register_mov"
-output=$(./a.out ./compiled_asm/listing_0038_many_register_mov > test.asm)
+output=$(./disassembler ./compiled_asm/listing_0038_many_register_mov > test.asm)
 return_val=$?
 
 nasm ./test.asm
@@ -34,7 +34,7 @@ else
 fi
 
 echo "CASE 3 - listing_0039_more_movs"
-output=$(./a.out ./compiled_asm/listing_0039_more_movs > test.asm)
+output=$(./disassembler ./compiled_asm/listing_0039_more_movs > test.asm)
 return_val=$?
 
 nasm ./test.asm
@@ -47,7 +47,7 @@ else
 fi
 
 echo "CASE 4 - listing_0041_add_sub_cmp_jnz"
-output=$(./a.out ./compiled_asm/listing_0041_add_sub_cmp_jnz > test.asm)
+output=$(./disassembler ./compiled_asm/listing_0041_add_sub_cmp_jnz > test.asm)
 return_val=$?
 
 nasm ./test.asm

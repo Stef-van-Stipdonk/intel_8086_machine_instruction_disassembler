@@ -24,13 +24,80 @@ static inline const char *get_register_name(int index, int is_word) {
   return reg_byte[index];
 }
 
+static inline void print_flag_changes(int fieldIndex) {
+  printf(" flags:");
+
+  bool sf = flags_get_sf_flag();
+  bool zf = flags_get_zf_flag();
+
+  if (reg_values[fieldIndex] == 0) {
+    flags_set_zf_flag();
+  } else {
+    flags_unset_zf_flag();
+  }
+
+  if (reg_values[fieldIndex] < 0) {
+    flags_set_sf_flag();
+  } else {
+    flags_unset_sf_flag();
+  }
+
+  if (sf == true && flags_get_sf_flag() == false) {
+    printf("S");
+  }
+
+  if (zf == true && flags_get_zf_flag() == false) {
+    printf("Z");
+  }
+
+  printf("->");
+
+  if (sf == false && flags_get_sf_flag() == true) {
+    printf("S");
+  }
+
+  if (zf == false && flags_get_zf_flag() == true) {
+    printf("Z");
+  }
+}
+
+static inline void print_flag_changes_cmp(bool is_equal) {
+  printf(" flags:");
+
+  bool sf = flags_get_sf_flag();
+  bool zf = flags_get_zf_flag();
+
+  flags_unset_sf_flag();
+
+  if (is_equal) {
+    flags_set_zf_flag();
+  }
+
+  if (sf == true && flags_get_sf_flag() == false) {
+    printf("S");
+  }
+
+  if (zf == true && flags_get_zf_flag() == false) {
+    printf("Z");
+  }
+
+  printf("->");
+
+  if (sf == false && flags_get_sf_flag() == true) {
+    printf("S");
+  }
+
+  if (zf == false && flags_get_zf_flag() == true) {
+    printf("Z");
+  }
+}
+
 static void print_byte_as_binary(const u8 *byte, u8 amount) {
   for (int i = 0; i < amount; i++) {
     for (int y = 7; y >= 0; y--) {
       u8 op = byte[i];
       printf("%d", (op >> y) & 1);
     }
-    printf(" ");
   }
 
   printf("\n");
@@ -110,16 +177,28 @@ static void disasm(const u8 *data, const size_t size, const bool should_exec) {
           printf("%s, %s", get_register_name(reg, w), get_register_name(rm, w));
           if (should_exec) {
             s16 before = reg_values[reg];
-            if ((op0 >> 2) == 0b000000) {
+            if ((op0 >> 2) == 0b000000) { // Add
               reg_values[reg] = reg_values[reg] + reg_values[rm];
               s16 after = reg_values[reg];
               printf(" ; %s:0x%x->0x%x", get_register_name(reg, w), before,
                      after);
-            } else if ((op0 >> 2) == 0b001010) {
+              print_flag_changes(reg);
+            } else if ((op0 >> 2) == 0b001010) { // Sub
               reg_values[reg] = reg_values[reg] - reg_values[rm];
               s16 after = reg_values[reg];
               printf(" ; %s:0x%x->0x%x", get_register_name(reg, w), before,
                      after);
+              print_flag_changes(reg);
+            } else if ((op0 >> 2) == 0b100010) { // Mov
+              reg_values[reg] = reg_values[rm];
+              s16 after = reg_values[reg];
+              printf(" ; %s:0x%x->0x%x", get_register_name(reg, w), before,
+                     after);
+
+              reg_values[rm] = 0;
+            } else if ((op0 >> 2) == 0b001110) { // Cmp
+              s16 result = before - reg_values[rm];
+              print_flag_changes_cmp(result == 0);
             }
           }
         } else {
@@ -131,20 +210,33 @@ static void disasm(const u8 *data, const size_t size, const bool should_exec) {
               s16 after = reg_values[rm];
               printf(" ; %s:0x%x->0x%x", get_register_name(rm, w), before,
                      after);
+              print_flag_changes(rm);
             } else if ((op0 >> 2) == 0b001010) {
               reg_values[rm] = reg_values[rm] - reg_values[reg];
               s16 after = reg_values[rm];
               printf(" ; %s:0x%x->0x%x", get_register_name(rm, w), before,
                      after);
+
+              print_flag_changes(rm);
+            } else if ((op0 >> 2) == 0b100010) {
+              reg_values[rm] = reg_values[reg];
+              s16 after = reg_values[rm];
+              printf(" ; %s:0x%x->0x%x", get_register_name(rm, w), before,
+                     after);
+
+              reg_values[reg] = 0;
+            } else if ((op0 >> 2) == 0b001110) { // Cmp
+              s16 result = before - reg_values[reg];
+              print_flag_changes_cmp(result == 0);
             }
           }
         }
 
         p += 2;
       }
-    } else if ((op0 >> 2) == 0b100000 ||
-               (op0 >> 2) ==
-                   0b1100011) { // add, sub ,cmp | register/memory <- immediate
+    } else if ((op0 >> 2) ==
+                   0b100000 // add, sub ,cmp | register/memory <- immediate
+               || (op0 >> 2) == 0b1100011) { // mov
       const int w = op0 & 1;
       const int s = (op0 >> 1) & 1;
 
@@ -211,18 +303,38 @@ static void disasm(const u8 *data, const size_t size, const bool should_exec) {
           p += 4;
         }
       } else if (mod == 0b11) {
-        s8 immediate = *(int8_t *)(p + 2);
-        printf("%s, %i", get_register_name(rm, w), *(s8 *)(p + 2));
+        if (w && !s) {
 
-        if (should_exec) {
-          s16 before = reg_values[rm];
-          if (reg == 0b000) { // Add
-            reg_values[rm] = reg_values[rm] + immediate;
-            s16 after = reg_values[rm];
-            printf(" ; %s:0x%x->0x%x", get_register_name(rm, w), before, after);
+          s16 immediate = *(s16 *)(p + 2);
+          printf("%s, %i", get_register_name(rm, w), *(s16 *)(p + 2));
+
+          if (should_exec) {
+            s16 before = reg_values[rm];
+            if (reg == 0b000) { // Add
+              reg_values[rm] = reg_values[rm] + immediate;
+              s16 after = reg_values[rm];
+              printf(" ; %s:0x%x->0x%x", get_register_name(rm, w), before,
+                     after);
+              print_flag_changes(rm);
+            }
           }
+          p += 4;
+        } else {
+          s8 immediate = *(s8 *)(p + 2);
+          printf("%s, %i", get_register_name(rm, w), *(s8 *)(p + 2));
+
+          if (should_exec) {
+            s16 before = reg_values[rm];
+            if (reg == 0b000) { // Add
+              reg_values[rm] = reg_values[rm] + immediate;
+              s16 after = reg_values[rm];
+              printf(" ; %s:0x%x->0x%x", get_register_name(rm, w), before,
+                     after);
+              print_flag_changes(rm);
+            }
+          }
+          p += 3;
         }
-        p += 3;
       }
     } else if ((op0 >> 2) == 0b000001 || // add immediate > accumulator
                (op0 >> 2) == 0b001011 || // sub immediate > accumulator
@@ -252,11 +364,15 @@ static void disasm(const u8 *data, const size_t size, const bool should_exec) {
             s16 after = reg_values[acummulator];
             printf(" ; %s:0x%x->0x%x", get_register_name(acummulator, w),
                    before, after);
+
+            print_flag_changes(acummulator);
           } else if ((op0 >> 2) == 0b0010110) { // Sub
             reg_values[acummulator] = reg_values[acummulator] + immediate;
             s16 after = reg_values[acummulator];
             printf(" ; %s:0x%x->0x%x", get_register_name(acummulator, w),
                    before, after);
+
+            print_flag_changes(acummulator);
           }
         }
 
@@ -272,11 +388,15 @@ static void disasm(const u8 *data, const size_t size, const bool should_exec) {
             u8 after = reg_values[acummulator];
             printf(" ; %s:0x%x->0x%x", get_register_name(acummulator, w),
                    before, after);
+
+            print_flag_changes(acummulator);
           } else if ((op0 >> 1) == 0b0010110) { // Sub
             reg_values[acummulator] = reg_values[acummulator] + immediate;
             u8 after = reg_values[acummulator];
             printf(" ; %s:0x%x->0x%x", get_register_name(acummulator, w),
                    before, after);
+
+            print_flag_changes(acummulator);
           }
         }
         p += 2;

@@ -1,8 +1,17 @@
+#ifndef FLAGS_H
+#define FLAGS_H
+
 #include "define.h"
+#include <malloc.h>
 #include <stdbool.h>
 
-static void set_zf_flag_state(bool state);
-static const bool get_zf_flag_state();
+extern u16 flags;
 
-static void set_sf_flag_state(bool state);
-static const bool get_sf_flag_state();
+void flags_set_zf_flag();
+void flags_unset_zf_flag();
+const bool flags_get_zf_flag();
+
+void flags_set_sf_flag();
+void flags_unset_sf_flag();
+const bool flags_get_sf_flag();
+#endif // FLAGS_H
