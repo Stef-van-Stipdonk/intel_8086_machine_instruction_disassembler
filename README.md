@@ -1,4 +1,4 @@
-Currently working on a rewrite: [v2_intel_8086_disassembler](https://github.com/Stef-van-Stipdonk/v2_intel_8086_disassembler)  
+🚧 Currently working on a rewrite: [v2_intel_8086_disassembler](https://github.com/Stef-van-Stipdonk/v2_intel_8086_disassembler)  
 The code became too unwieldy. 
 
 -----
