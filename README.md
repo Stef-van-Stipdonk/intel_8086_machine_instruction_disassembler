@@ -1,3 +1,8 @@
+Currently creating a new version: [v2_intel_8086_disassembler](https://github.com/Stef-van-Stipdonk/v2_intel_8086_disassembler)  
+The code became too unwieldy. 
+
+-----
+
 Written as part of the homework for the Performance-Aware Programming Series.
 https://www.computerenhance.com/
 
